@@ -42,11 +42,33 @@ Firefox, with two trigger paths:
 > aren't given the address bar's live contents — which is why the shortcut opens a
 > popup rather than reading the URL bar directly.
 
-Either path opens Claude, ChatGPT, and Gemini in three new tabs. Claude and ChatGPT
-prefill and submit via their `?q=` URL param; Gemini has no such param, so a content
-script types the prompt into the Gemini composer and sends it. If Google changes
-their page and the composer can't be found, the prompt is copied to your clipboard
-as a fallback so you can paste it.
+Either path opens Claude, ChatGPT, and Gemini in three new tabs, with your prompt
+prefilled in each:
+
+- **Claude** and **ChatGPT** are prefilled via their `?q=` URL param.
+- **Gemini** has no such param, so a content script types the prompt into the Gemini
+  composer (with a clipboard fallback if its DOM changes and the composer can't be
+  found — just paste with `Cmd+V`).
+
+### Auto-submit: work in progress
+
+Auto-submitting the prompt is still in development. Right now the prompt is
+**submitted automatically only in the tab that is currently focused** — the last one
+opened (Gemini, by default). The other two tabs are prefilled but not yet submitted;
+switch to each and press **Enter** to send.
+
+The blocker is that submitting requires firing the send button's real pointer/mouse
+events, and Firefox throttles background tabs so those events don't take effect until
+the tab is focused. Approaches explored so far:
+
+- Synthetic `Enter` keypress and a plain `element.click()` — ignored by the sites'
+  editors.
+- A full pointer+mouse click sequence — works, but only in the focused tab.
+- Spoofing focus/visibility (`focus-spoof.js`, `document.hidden`/`hasFocus`
+  overrides) — doesn't defeat the background-tab throttling.
+
+Next candidate approach: have the extension briefly focus each tab in turn so each
+submits while active (a short visible "flicker" through the tabs).
 
 ### Loading it
 
@@ -59,5 +81,5 @@ extension would need to be signed via [AMO](https://addons.mozilla.org/) /
 
 ### Requirements
 
-- Firefox (Manifest V3; recent versions)
+- Firefox 128+ (Manifest V3; `focus-spoof.js` uses content-script `world: "MAIN"`)
 - You must be logged in to each service for the prompt to submit.

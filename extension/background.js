@@ -23,6 +23,9 @@ async function launch(query) {
     [STORAGE_KEY]: q
   });
 
+  // focus-spoof.js makes each backgrounded tab believe it is focused/visible, so
+  // all three can submit even though only one tab can actually be active. Order
+  // no longer matters.
   browser.tabs.create({ url: `https://claude.ai/new?q=${encoded}` });
   browser.tabs.create({ url: `https://chatgpt.com/?q=${encoded}` });
   browser.tabs.create({ url: "https://gemini.google.com/app" });
