@@ -1,0 +1,44 @@
+{
+  "manifest_version": 3,
+  "name": "LLM Multiquery",
+  "version": "1.0",
+  "description": "Fan one prompt out to Claude, ChatGPT, and Gemini in three new tabs.",
+
+  "permissions": ["tabs", "storage"],
+  "host_permissions": ["https://gemini.google.com/*"],
+
+  "omnibox": { "keyword": "llm" },
+
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Ask all 3 LLMs"
+  },
+
+  "commands": {
+    "_execute_action": {
+      "suggested_key": {
+        "default": "Ctrl+Alt+L",
+        "mac": "Command+Alt+L"
+      },
+      "description": "Open the multiquery popup"
+    }
+  },
+
+  "background": {
+    "scripts": ["background.js"]
+  },
+
+  "content_scripts": [
+    {
+      "matches": ["https://gemini.google.com/*"],
+      "js": ["gemini-content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "llm-multiquery@local"
+    }
+  }
+}
