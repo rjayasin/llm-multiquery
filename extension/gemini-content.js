@@ -44,16 +44,29 @@ function setText(input, text) {
   input.dispatchEvent(new InputEvent("input", { bubbles: true, data: text }));
 }
 
+function isEnabled(btn) {
+  return btn && !btn.disabled && btn.getAttribute("aria-disabled") !== "true";
+}
+
+// The send button stays disabled until Gemini registers the typed text, so poll
+// for it to enable before clicking; fall back to an Enter keypress on timeout.
 function submit(input) {
-  const sendBtn = findFirst(SEND_SELECTORS);
-  if (sendBtn && !sendBtn.disabled) {
-    sendBtn.click();
-    return;
-  }
-  // Fall back to pressing Enter in the composer.
-  const opts = { bubbles: true, key: "Enter", code: "Enter", keyCode: 13, which: 13 };
-  input.dispatchEvent(new KeyboardEvent("keydown", opts));
-  input.dispatchEvent(new KeyboardEvent("keyup", opts));
+  const deadline = Date.now() + 5000;
+  const tick = () => {
+    const sendBtn = findFirst(SEND_SELECTORS);
+    if (isEnabled(sendBtn)) {
+      sendBtn.click();
+      return;
+    }
+    if (Date.now() < deadline) {
+      setTimeout(tick, POLL_INTERVAL_MS);
+      return;
+    }
+    const opts = { bubbles: true, key: "Enter", code: "Enter", keyCode: 13, which: 13 };
+    input.dispatchEvent(new KeyboardEvent("keydown", opts));
+    input.dispatchEvent(new KeyboardEvent("keyup", opts));
+  };
+  tick();
 }
 
 async function run() {
@@ -70,8 +83,7 @@ async function run() {
     const input = findFirst(INPUT_SELECTORS);
     if (input) {
       setText(input, query);
-      // Give the send button a moment to enable after the input event.
-      setTimeout(() => submit(input), 150);
+      submit(input);
       return;
     }
     if (Date.now() < deadline) {

@@ -5,7 +5,12 @@
   "description": "Fan one prompt out to Claude, ChatGPT, and Gemini in three new tabs.",
 
   "permissions": ["tabs", "storage"],
-  "host_permissions": ["https://gemini.google.com/*"],
+  "host_permissions": [
+    "https://gemini.google.com/*",
+    "https://claude.ai/*",
+    "https://chatgpt.com/*",
+    "https://chat.openai.com/*"
+  ],
 
   "omnibox": { "keyword": "llm" },
 
@@ -32,6 +37,15 @@
     {
       "matches": ["https://gemini.google.com/*"],
       "js": ["gemini-content.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://claude.ai/*",
+        "https://chatgpt.com/*",
+        "https://chat.openai.com/*"
+      ],
+      "js": ["autosubmit.js"],
       "run_at": "document_idle"
     }
   ],

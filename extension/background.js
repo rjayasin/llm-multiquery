@@ -1,9 +1,13 @@
 // Core fan-out logic, shared by the omnibox keyword and the popup shortcut.
 //
-// URL behavior mirrors multiquery.sh:
-//   - Claude  and ChatGPT accept a ?q= param that prefills AND submits.
-//   - Gemini has no such param, so we stash the query in storage and let
-//     gemini-content.js type it into the page once the tab loads.
+// Populate vs. submit:
+//   - Claude and ChatGPT populate reliably from the ?q= URL param — the site's
+//     own code injects the text and registers it with its editor framework.
+//     Trying to "type" into these ProseMirror editors ourselves doesn't take
+//     (they ignore programmatic input), so we let ?q= do it and only press Enter.
+//   - Gemini has no such param, so gemini-content.js types the query in.
+// The per-site submit flags tell each content script "we launched this — go
+// ahead and submit," so a normal visit to the site never auto-submits.
 
 const STORAGE_KEY = "pendingGeminiQuery";
 
@@ -13,13 +17,15 @@ async function launch(query) {
 
   const encoded = encodeURIComponent(q);
 
-  // Claude + ChatGPT: prefill and auto-submit via URL.
-  await browser.tabs.create({ url: `https://claude.ai/new?q=${encoded}` });
-  await browser.tabs.create({ url: `https://chatgpt.com/?q=${encoded}` });
+  await browser.storage.local.set({
+    submitClaude: true,
+    submitChatgpt: true,
+    [STORAGE_KEY]: q
+  });
 
-  // Gemini: hand the raw query to the content script via storage, then open it.
-  await browser.storage.local.set({ [STORAGE_KEY]: q });
-  await browser.tabs.create({ url: "https://gemini.google.com/app" });
+  browser.tabs.create({ url: `https://claude.ai/new?q=${encoded}` });
+  browser.tabs.create({ url: `https://chatgpt.com/?q=${encoded}` });
+  browser.tabs.create({ url: "https://gemini.google.com/app" });
 }
 
 // Omnibox: typing `llm <query>` in the address bar and pressing Enter.
@@ -32,7 +38,5 @@ browser.omnibox.onInputEntered.addListener((text) => {
 
 // Popup: receives the query typed into popup.html.
 browser.runtime.onMessage.addListener((msg) => {
-  if (msg && msg.type === "launch") {
-    launch(msg.query);
-  }
+  if (msg && msg.type === "launch") launch(msg.query);
 });
